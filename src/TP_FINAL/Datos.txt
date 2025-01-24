@@ -1,0 +1,22 @@
+1 Aerolineas Argentinas,2
+1 LAN,3
+1 Avianca,2
+2 50
+3 A,FREESHOP A,25,SALA DE EMBARQUE A,2
+3 B,FREESHOP B,35,SALA DE EMBARQUE B,5
+3 C,FREESHOP C,40,SALA DE EMBARQUE C,5
+4 AA2020,Avianca,12
+4 LD3745,Aerolineas Argentinas,15
+4 HO7637,LAN,17
+4 VJ5170,Avianca,19
+4 MA4066,Aerolineas Argentinas,21
+4 XK9397,Aerolineas Argentinas,23
+4 JN6155,LAN,10
+4 BB9011,LAN,12
+4 ZK1961,Aerolineas Argentinas,14
+4 GF3808,LAN,16
+4 ZE2078,Avianca,18
+4 NT4673,Avianca,20
+4 HS1279,LAN,22
+4 MP5095,Aerolineas Argentinas,24
+4 YG4679,Avianca,9

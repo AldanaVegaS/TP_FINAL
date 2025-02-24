@@ -1,6 +1,5 @@
 package TP_FINAL;
-
-public class Hora extends Thread{
+public class Hora{
     private int hs;
 
     public Hora (){
@@ -11,21 +10,15 @@ public class Hora extends Thread{
         return hs;
     }
 
-    @Override
-    public void run(){
-        while(true){
-            try {
-                synchronized (this) {
-                    this.hs = this.hs % 24 + 1;
-                    System.out.println("HORA: "+this.hs);
-                    this.notifyAll();
-                }
-                Thread.sleep(3000);
-            } catch (InterruptedException e) {
-                System.err.println("Error: " + e.getMessage());
-            }
-        }
+    public synchronized  void incrementarHora(){
+        this.hs = this.hs % 24 + 1;
+        System.out.println("HORA: "+this.hs);        
+        this.notifyAll();
     }
 
-
+    public synchronized void esperar(int hora) throws InterruptedException{
+        while(hs != hora){
+            this.wait();
+        }
+    }
 }

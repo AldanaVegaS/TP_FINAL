@@ -6,7 +6,7 @@ import java.util.concurrent.Semaphore;
 public class FreeShop {
     private final String nombre;
     private final int max;
-    private final CajaFreeShop cajas[] = new CajaFreeShop[2];
+    private final Semaphore[] cajasDisponibles = {new Semaphore(1,true), new Semaphore(1,true)};
     private final Semaphore lugaresDisponibles;
 
 
@@ -14,8 +14,6 @@ public class FreeShop {
         nombre=n;
         max=m;
         lugaresDisponibles = new Semaphore(max);
-        cajas[0]= new CajaFreeShop("CAJA 1 - "+nombre);
-        cajas[1]= new CajaFreeShop("CAJA 2 - "+nombre);
     }
  
     public String getNombre(){
@@ -35,25 +33,27 @@ public class FreeShop {
                 Thread.sleep(500); // Simular tiempo de mirar productos
             }
 
-            salirFreeShop(pasajero);
+            lugaresDisponibles.release();
         }else{
             System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA+nombre+Colores.RESET+" ---> "+pasajero.getNombre()+" no pudo ingresar al freeshop");  
         }
     }
 
     private void realizarCompra(Pasajero pasajero) throws InterruptedException{
-        CajaFreeShop cajaSeleccionada = (cajas[0].getCola().size() <= cajas[1].getCola().size()) ? cajas[0] : cajas[1];
-        cajaSeleccionada.ingresar(pasajero);
-    }
+        Semaphore seleccionado = (cajasDisponibles[0].getQueueLength() <= cajasDisponibles[1].getQueueLength()) ? cajasDisponibles[0] : cajasDisponibles[1];
+        String nombreCaja = (seleccionado == cajasDisponibles[0]) ? "CAJA 1" : "CAJA 2";
+        System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA + nombre +Colores.RESET+ " ---> " + pasajero.getNombre() + " se une a la cola de la "  +nombreCaja+ ".");
 
-    private void salirFreeShop(Pasajero pasajero){
-        System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA+nombre+Colores.RESET+" ---> "+pasajero.getNombre()+" saliendo del freeshop");
-        lugaresDisponibles.release();
+        seleccionado.acquire();
+        System.out.println("\t\t\t\t\t\t"+Colores.BLUE_FONDO+Colores.NEGRITA + nombreCaja +Colores.RESET+ " ---> Atendiendo a " + pasajero.getNombre() + ".");
+        Thread.sleep(100); 
+        System.out.println("\t\t\t\t\t\t"+Colores.BLUE_FONDO+Colores.NEGRITA + nombreCaja +Colores.RESET+ " ---> Finalizada la compra de " + pasajero.getNombre() + ".");
+        seleccionado.release();
     }
 
 
     @Override
     public String toString(){
-        return "Nombre:"+nombre+"  Cantidad maxima:"+max+ "  Cajas:"+Arrays.toString(cajas);
+        return "Nombre:"+nombre+"  Cantidad maxima:"+max+ "  Cajas:"+Arrays.toString(cajasDisponibles);
     }
 }

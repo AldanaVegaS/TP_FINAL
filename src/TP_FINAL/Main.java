@@ -24,25 +24,38 @@ public class Main {
     private static final Random random = new Random();
     private static int contadorPasajeros = 1;
     private static final Hora hs = new Hora();
+    private static Reloj reloj;
+    private static ConductorTren conductorTren;
+    private static ScheduledThreadPoolExecutor scheduler = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1);
+
     public static void main (String []args) throws InterruptedException{
         cartelAeropuerto();
 
         cargarDatos();
 
-        aeropuerto = new Aeropuerto(puestosAtencion,mover,terminales,vuelos, hs);
+        aeropuerto = new Aeropuerto(puestosAtencion,mover,terminales,vuelos);
 
-        hs.start();
+        reloj = new Reloj(hs,aeropuerto);        
+        reloj.start();
+        conductorTren = new ConductorTren(mover);
+        conductorTren.start();
+        Guardia guardia = new Guardia(puestosAtencion, hs, aeropuerto);
+        guardia.start();
         //System.out.println(aeropuerto.toString());
 
-        ScheduledThreadPoolExecutor scheduler = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1);
         Runnable task = () -> {
-            if (hs.getHora() > 5 && hs.getHora() < 20) { // Crear pasajeros solo en horario permitido
-                int pasajeros = (int) (Math.random() * (cantPasajeros - 0 + 1) + 1); 
+            int pasajeros = (int) (Math.random() * (cantPasajeros - 0 + 1) + 1); 
                 for (int i = 1; i <= pasajeros; i++) {
                     // Filtrar vuelos que no hayan salido aún
-                    List<Vuelo> vuelosDisponibles = Arrays.stream(vuelos)
+                    List<Vuelo> vuelosDisponibles;
+                    if (hs.getHora() < 21) {
+                        vuelosDisponibles = Arrays.stream(vuelos)
                             .filter(v -> v.getHoraSalida() > hs.getHora()+3) // Solo vuelos que salen en las próximas 3 horas
-                            .toList();
+                            .toList();   
+                    }else{
+                        vuelosDisponibles = Arrays.stream(vuelos).toList();
+                    }
+                    
 
                     if (!vuelosDisponibles.isEmpty()) { 
                         int index = (int) (Math.random() * vuelosDisponibles.size()); // Elegir un vuelo aleatorio entre los disponibles
@@ -55,7 +68,7 @@ public class Main {
                         System.out.println("No hay vuelos disponibles para asignar a los nuevos pasajeros.");
                     }
                 }
-            }
+            
         };
         int initialDelay = 0;
         int period = random.nextInt(3000) + 1000;

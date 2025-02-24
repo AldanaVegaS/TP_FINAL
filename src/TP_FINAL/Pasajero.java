@@ -7,8 +7,6 @@ public class Pasajero extends Thread{
     private PuestoAtencion puestoAtencion;
     private Terminal terminal;
     private String puesto;
-    private boolean atendidoEnPuestoAtencion = false;
-    private boolean bajoEnTerminal = false;
     private final Hora hs;
 
     public Pasajero(String nom, Vuelo pas, Aeropuerto aero,Hora hora){
@@ -29,8 +27,8 @@ public class Pasajero extends Thread{
         return pasaje;
     }
 
-    public String getPuesto(){
-        return puestoAtencion.getAerolinea();
+    public PuestoAtencion getPuesto(){
+        return puestoAtencion;
     }
 
     public void setPuestoAtencion(PuestoAtencion puesto){
@@ -49,34 +47,12 @@ public class Pasajero extends Thread{
     public String getPuestoEmbarque(){
         return puesto;
     }
-
-    
-    public synchronized void marcarAtendido() {
-        this.atendidoEnPuestoAtencion = true;
-        notify(); // Notifica si otro hilo está esperando.
-    }
-
-    public synchronized void esperarAtencion() throws InterruptedException {
-        while (!atendidoEnPuestoAtencion) {
-            wait(); // Espera a ser notificado de que ha sido atendido.
-        }
-    }
-
-    public synchronized void bajoEnTerminal(){
-        this.bajoEnTerminal = true;
-        notify();
-    }
-
-    public synchronized void esperarViaje() throws InterruptedException {
-        while (!bajoEnTerminal) {
-            wait(); 
-        }
-    }
    
     public void ingresoATerminal(Terminal terminal) throws InterruptedException{
         int horaActual = hs.getHora();
         int tiempoRestante = pasaje.getHoraSalida() - horaActual;
-        if (tiempoRestante > 2 && hs.getHora()>6 && hs.getHora()<22) { 
+        boolean ingreso = Math.random() < 0.5;
+        if (ingreso && tiempoRestante > 2) { 
             System.out.println("\t\t\t\t"+Colores.RED+Colores.NEGRITA+"TERMINAL "+terminal.getNombre()+Colores.RESET+" ---> "+nombre + " decide ir al free-shop.");
             terminal.getFreeShop().ingresar(this);
         } else {
@@ -85,28 +61,22 @@ public class Pasajero extends Thread{
         terminal.getSala().esperarVuelo(this);
     }
 
-    public void finalizar(){
-        Thread.currentThread().interrupt();
-    }
-
-
     @Override
     public void run(){    
         System.out.println(Colores.PURPLE+Colores.NEGRITA+"AEROPUERTO "+Colores.RESET+"---> Ingresa pasajero: "+nombre+", pasaje: "+pasaje.toString());
         try {
-            //Es atendido por el puesto de informe y derivado al puesto de atencion correspondiente
-            aeropuerto.atencionPuestoInfo(this);
+           //Es atendido por el puesto de informe y derivado al puesto de atencion correspondiente
+           aeropuerto.atencionPuestoInfo(this);
 
-            //Es atendido en el puesto de atencion
-            puestoAtencion.ingresarPasajero(this);
+           aeropuerto.esperarTurno(this);
+           puestoAtencion.hacerCheckIn(this);
+           aeropuerto.salirDelPuesto();
 
-            //Sube al people mover
-            this.esperarAtencion();
-            aeropuerto.subirAlPeopleMover(this);
+           // Sube al people mover;
+           aeropuerto.getPeopleMover().usarTren(this);
 
-            //pasajero en la terminal
-            this.esperarViaje();
-            this.ingresoATerminal(terminal);
+           // Ingresa a la terminal
+           this.ingresoATerminal(terminal);
 
         } catch (InterruptedException e) {
             System.err.println("Error: " + e.getMessage());

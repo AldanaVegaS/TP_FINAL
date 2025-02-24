@@ -1,21 +1,25 @@
 package TP_FINAL;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class PuestoAtencion {
     private final String aerolinea;
     private final int max;
     private final Semaphore semaforoPuesto; // Controla la cantidad maxima de pasajeros en el puesto de atención
-    private final BlockingQueue<Pasajero> hallCentral;
     private Terminal[] terminales;
+    private final Semaphore semaforoAtencion = new Semaphore(1);//Controla el ingreso al puesto de atención
+    private Lock guardia = new ReentrantLock();
+    private Condition ingreso = guardia.newCondition();//Permite al guardia saber si se puede ingresar al puesto de atención
+    private Condition permiteIngreso = guardia.newCondition();//Permite al pasajero saber si puede ingresar al puesto de atención
+
 
     public PuestoAtencion(String aero, int m){
         aerolinea=aero;
         max=m;
         this.semaforoPuesto = new Semaphore(m);
-        this.hallCentral = new LinkedBlockingQueue<>(30);
     }
 
     public void setTerminales(Terminal[] terminales) {
@@ -26,32 +30,23 @@ public class PuestoAtencion {
         return aerolinea;
     }
 
-    public void ingresarPasajero(Pasajero pasajero) throws InterruptedException {
-        if (!semaforoPuesto.tryAcquire()) {
-            System.out.println("\t\t"+Colores.YELLOW+Colores.NEGRITA+"PUESTO DE ATENCION "+Colores.RESET+"---> "+pasajero.getNombre() + " espera en el hall central de " + aerolinea);
-            hallCentral.put(pasajero);
-        } else {
-            atender(pasajero);
-        }
-    }    
-
-    private void atender(Pasajero pasajero) throws InterruptedException{
-        asignarTerminal(pasajero);
-        System.out.println("\t\t"+Colores.YELLOW+Colores.NEGRITA+"PUESTO DE ATENCION "+Colores.RESET+"---> "+pasajero.getNombre() + " se le asigna una terminal y puesto de embarque: " + pasajero.getTerminal().getNombre());
+    public void hacerCheckIn(Pasajero pasajero) throws InterruptedException{
+        //Ingresar al puesto de atencion
+        semaforoPuesto.acquire();
+        System.out.println("\t\t"+Colores.YELLOW+Colores.NEGRITA+"PUESTO DE ATENCION "+aerolinea.toUpperCase()+Colores.RESET+"---> "+pasajero.getNombre()+" entró al puesto de atención");
+        
+        //Es atendido de a un pasajero a la vez
+        semaforoAtencion.acquire();
+        System.out.println("\t\t"+Colores.YELLOW+Colores.NEGRITA+"PUESTO DE ATENCION "+aerolinea.toUpperCase()+Colores.RESET+"---> "+pasajero.getNombre()+" está siendo atendido");
+        asignarTerminal(pasajero); 
         Thread.sleep(300);
+        System.out.println("\t\t"+Colores.YELLOW+Colores.NEGRITA+"PUESTO DE ATENCION "+aerolinea.toUpperCase()+Colores.RESET+"---> "+pasajero.getNombre() + " se le asigna una terminal y puesto de embarque: " + pasajero.getTerminal().getNombre()+"-"+pasajero.getPuestoEmbarque());
+        
+        //Libera el puesto de atencion
+        semaforoAtencion.release();
         semaforoPuesto.release();
-        pasajero.marcarAtendido();
-        ingresarDesdeHall();//Cumple la funcion del guardia permitiendo el ingreso desde el hall
     }
 
-    private void ingresarDesdeHall() throws InterruptedException {
-        Pasajero siguiente = hallCentral.poll();
-        if (siguiente != null) {
-            semaforoPuesto.acquire();
-            atender(siguiente);
-        }
-    }
-    
     private void asignarTerminal(Pasajero pasajero) {
         for (Terminal terminal : terminales) {
             PuestoEmbarque[] puestos = terminal.getPuestos();
@@ -64,6 +59,10 @@ public class PuestoAtencion {
                 }
             }
         }
+    }
+
+    public synchronized boolean estaDisponible(){
+        return (semaforoPuesto.availablePermits() > 0);
     }
     
     @Override

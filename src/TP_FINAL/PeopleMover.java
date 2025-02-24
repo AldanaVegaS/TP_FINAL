@@ -18,7 +18,7 @@ public class PeopleMover{
     private final Condition puedeBajar = lock.newCondition();
     private String terminalActual = " "; // Terminal actual del tren
 
-    public PeopleMover(int capacidadMax, Hora hs) {
+    public PeopleMover(int capacidadMax) {
         this.capacidadMax = capacidadMax;
     }
 

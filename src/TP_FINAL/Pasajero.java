@@ -59,6 +59,7 @@ public class Pasajero extends Thread{
             System.out.println("\t\t\t\t"+Colores.RED+Colores.NEGRITA+"TERMINAL "+terminal.getNombre()+Colores.RESET+" ---> "+nombre + " va directamente a la sala de embarque.");
         }
         terminal.getSala().esperarVuelo(this);
+        Thread.currentThread().interrupt();
     }
 
     @Override
@@ -68,6 +69,7 @@ public class Pasajero extends Thread{
            //Es atendido por el puesto de informe y derivado al puesto de atencion correspondiente
            aeropuerto.atencionPuestoInfo(this);
 
+           //Es atendido por el puesto de atencion y realiza el check-in
            aeropuerto.esperarTurno(this);
            puestoAtencion.hacerCheckIn(this);
            aeropuerto.salirDelPuesto();

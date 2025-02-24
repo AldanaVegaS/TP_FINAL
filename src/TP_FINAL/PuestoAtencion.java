@@ -1,9 +1,6 @@
 package TP_FINAL;
 
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class PuestoAtencion {
     private final String aerolinea;
@@ -11,9 +8,6 @@ public class PuestoAtencion {
     private final Semaphore semaforoPuesto; // Controla la cantidad maxima de pasajeros en el puesto de atención
     private Terminal[] terminales;
     private final Semaphore semaforoAtencion = new Semaphore(1);//Controla el ingreso al puesto de atención
-    private Lock guardia = new ReentrantLock();
-    private Condition ingreso = guardia.newCondition();//Permite al guardia saber si se puede ingresar al puesto de atención
-    private Condition permiteIngreso = guardia.newCondition();//Permite al pasajero saber si puede ingresar al puesto de atención
 
 
     public PuestoAtencion(String aero, int m){

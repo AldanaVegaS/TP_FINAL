@@ -10,7 +10,7 @@ public class FreeShop {
     private final Semaphore lugaresDisponibles;
 
 
-    public FreeShop(String n, int m, Hora hs){
+    public FreeShop(String n, int m){
         nombre=n;
         max=m;
         lugaresDisponibles = new Semaphore(max);

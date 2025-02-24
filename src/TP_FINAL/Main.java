@@ -123,7 +123,7 @@ public class Main {
         StringTokenizer dato = new StringTokenizer(line,",");
         
         max = Integer.parseInt(dato.nextToken());
-        mover = new PeopleMover(max, hs);
+        mover = new PeopleMover(max);
     }
 
     private static void cargaTerminal(String line){
@@ -140,7 +140,7 @@ public class Main {
         nombreSala=dato.nextToken();
         cantPuestosEmb=Integer.parseInt(dato.nextToken());
 
-        FreeShop fshop = new FreeShop(nombreFreeshop, maxFreeshop,hs);
+        FreeShop fshop = new FreeShop(nombreFreeshop, maxFreeshop);
         SalaEmbarque sala = new SalaEmbarque(hs, nombreSala);
         terminal = new Terminal(nombre, fshop, sala, cantPuestosEmb);
         terminales[cantTerminales]=terminal;

@@ -72,9 +72,9 @@ public class Aeropuerto {
 
    //El pasajero espera su turno para ingresar al puesto
    public void esperarTurno(Pasajero pasajero) throws InterruptedException{
-      PuestoAtencion puesto = pasajero.getPuesto();
       lock.lock();
       try {
+         PuestoAtencion puesto = pasajero.getPuesto();
          System.out.println("\t\t"+Colores.YELLOW+Colores.NEGRITA+"PUESTO DE ATENCION "+puesto.getAerolinea().toUpperCase()+Colores.RESET+"---> "+pasajero.getNombre()+" espera su turno para ingresar al puesto de atención");
          while(!puesto.estaDisponible()){
             puedePasar.await();
@@ -107,18 +107,13 @@ public class Aeropuerto {
       }
   }
 
-  public boolean puestosDisponibles(){
-   lock.lock();
-   try {
+  private boolean puestosDisponibles(){
       for(PuestoAtencion puesto: puestosAtencion){
          if(puesto.estaDisponible()){
             return true;
          }
       }
       return false;
-   } finally {
-       lock.unlock();
-      }
    }
 
 

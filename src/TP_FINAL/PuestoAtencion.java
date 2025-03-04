@@ -7,7 +7,7 @@ public class PuestoAtencion {
     private final int max;
     private final Semaphore semaforoPuesto; // Controla la cantidad maxima de pasajeros en el puesto de atención
     private Terminal[] terminales;
-    private final Semaphore semaforoAtencion = new Semaphore(1);//Controla el ingreso al puesto de atención
+    private final Semaphore semaforoAtencion = new Semaphore(1,true);//Controla el ingreso al puesto de atención
 
 
     public PuestoAtencion(String aero, int m){

@@ -1,21 +1,20 @@
 package TP_FINAL;
-
 import java.util.Arrays;
 
 public class Terminal {
     private final String nombre;
     private final FreeShop freeShop;
-    private final SalaEmbarque sala;
-    private final PuestoEmbarque puestos[];
+    private final String puestos[];
+    private final int cantPuestos;
 
-    public Terminal(String n, FreeShop free, SalaEmbarque s, int cantPuestos){
+    public Terminal(String  n, FreeShop free, int cantPuestos){
         nombre=n;
         freeShop=free;
-        sala=s;
         puestos=crearPuestos(cantPuestos);
+        this.cantPuestos = cantPuestos;
     }
 
-    public String getNombre(){
+    public String  getNombre(){
         return nombre;
     }
 
@@ -23,12 +22,12 @@ public class Terminal {
         return freeShop;
     } 
 
-    public PuestoEmbarque[] getPuestos(){
+    public String[] getPuestos(){
         return puestos;
     }
 
-    public SalaEmbarque getSala(){
-        return sala;
+    public int getCantPuestos(){
+        return cantPuestos;
     }
 
     
@@ -37,10 +36,10 @@ public class Terminal {
         return "Nombre:"+nombre+"  Freeshop:"+freeShop.toString()+"  Puesto de Embarque:"+Arrays.toString(puestos);
     }
 
-    private PuestoEmbarque[] crearPuestos(int cantPuestos){
-        PuestoEmbarque localPuestos [] = new PuestoEmbarque[cantPuestos];
+    private String[] crearPuestos(int cantPuestos){
+        String localPuestos [] = new String[cantPuestos];
         for(int i=0;i<cantPuestos;i++){
-            localPuestos[i] = new PuestoEmbarque(("Puesto embarque "+(i+1)));
+            localPuestos[i] = "Puesto embarque "+(i+1);
         }
         return localPuestos;
 

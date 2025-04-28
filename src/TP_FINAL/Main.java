@@ -1,8 +1,10 @@
 package TP_FINAL;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
@@ -20,29 +22,40 @@ public class Main {
     public static int cantTerminales = 0;
     public static int cantVuelos = 0;
     public static Vuelo vuelos[] = new Vuelo[15];
-    public static int cantPasajeros = 15; //Cantidad maxima de hilos pasajeros que se pueden crear juntos 
+    public static int cantPasajeros = 20;//Cantidad maxima de hilos pasajeros que se pueden crear juntos 
     private static final Random random = new Random();
     private static int contadorPasajeros = 1;
     private static final Hora hs = new Hora();
-    public static void main (String []args) throws InterruptedException{
+    private static ConductorTren conductorTren;
+    private static final HashMap<String, PuestoAtencion> aerolineasAPuestos = new HashMap<>();
+
+
+    public static void main (String []args) throws InterruptedException, FileNotFoundException{
         cartelAeropuerto();
 
         cargarDatos();
 
-        aeropuerto = new Aeropuerto(puestosAtencion,mover,terminales,vuelos, hs);
-
-        hs.start();
-        //System.out.println(aeropuerto.toString());
+        aeropuerto = new Aeropuerto(puestosAtencion,mover, terminales,vuelos, hs, aerolineasAPuestos);
+      
+        Reloj reloj = new Reloj(hs);
+        reloj.start();
+        conductorTren = new ConductorTren(mover,hs);
+        conductorTren.start();
 
         ScheduledThreadPoolExecutor scheduler = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1);
         Runnable task = () -> {
-            if (hs.getHora() > 5 && hs.getHora() < 20) { // Crear pasajeros solo en horario permitido
-                int pasajeros = (int) (Math.random() * (cantPasajeros - 0 + 1) + 1); 
+            int pasajeros = (int) (Math.random() * (cantPasajeros - 0 + 1) + 1); 
                 for (int i = 1; i <= pasajeros; i++) {
                     // Filtrar vuelos que no hayan salido aún
-                    List<Vuelo> vuelosDisponibles = Arrays.stream(vuelos)
-                            .filter(v -> v.getHoraSalida() > hs.getHora()+3) // Solo vuelos que salen en las próximas 3 horas
-                            .toList();
+                    List<Vuelo> vuelosDisponibles;
+                    if (hs.getHora() < 21) {
+                        vuelosDisponibles = Arrays.stream(vuelos)
+                            .filter(v -> v.getHoraSalida() > hs.getHora()+5) // Solo vuelos que salen en las próximas 3 horas
+                            .toList();   
+                    }else{
+                        vuelosDisponibles = Arrays.stream(vuelos).toList();
+                    }
+                    
 
                     if (!vuelosDisponibles.isEmpty()) { 
                         int index = (int) (Math.random() * vuelosDisponibles.size()); // Elegir un vuelo aleatorio entre los disponibles
@@ -51,18 +64,16 @@ public class Main {
                         Pasajero pasajero = new Pasajero(("Pasajero " + contadorPasajeros), vueloAsignado, aeropuerto, hs);
                         pasajero.start();
                         contadorPasajeros++;
-                    } else {
-                        System.out.println("No hay vuelos disponibles para asignar a los nuevos pasajeros.");
                     }
                 }
-            }
+            
         };
         int initialDelay = 0;
         int period = random.nextInt(3000) + 1000;
         scheduler.scheduleAtFixedRate(task, initialDelay, period, TimeUnit.MILLISECONDS);
     }
 
-    public static void cargarDatos(){
+    public static void cargarDatos() throws FileNotFoundException {
         //Carga los datos del archivo de texto en las estructuras
         try (Scanner input = new Scanner(new File("src\\TP_FINAL\\Datos.txt"))) {
             while (input.hasNextLine()) {
@@ -89,18 +100,19 @@ public class Main {
 
     private static void cargaPuestoAtencion(String line){
         PuestoAtencion puesto;
-        String aeropuertoName;
+        String aerolineaNombre;
         int max;
 
         line=line.substring(2);
         StringTokenizer dato = new StringTokenizer(line,",");
 
-        aeropuertoName = dato.nextToken();
+        aerolineaNombre = dato.nextToken();
         max = Integer.parseInt(dato.nextToken());
 
-        puesto = new PuestoAtencion(aeropuertoName, max);
+        puesto = new PuestoAtencion(aerolineaNombre, max);
         puestosAtencion[cantPuestosA]=puesto;
         cantPuestosA++;
+        aerolineasAPuestos.put(aerolineaNombre, puesto);
     }
 
     private static void cargaPeopleMover(String line){
@@ -110,12 +122,12 @@ public class Main {
         StringTokenizer dato = new StringTokenizer(line,",");
         
         max = Integer.parseInt(dato.nextToken());
-        mover = new PeopleMover(max, hs);
+        mover = new PeopleMover(max);
     }
 
     private static void cargaTerminal(String line){
         Terminal terminal;
-        String nombre, nombreFreeshop, nombreSala;
+        String nombre, nombreFreeshop;
         int maxFreeshop, cantPuestosEmb;
 
         line=line.substring(2);
@@ -124,12 +136,10 @@ public class Main {
         nombre=dato.nextToken();
         nombreFreeshop=dato.nextToken();
         maxFreeshop=Integer.parseInt(dato.nextToken());
-        nombreSala=dato.nextToken();
         cantPuestosEmb=Integer.parseInt(dato.nextToken());
 
-        FreeShop fshop = new FreeShop(nombreFreeshop, maxFreeshop,hs);
-        SalaEmbarque sala = new SalaEmbarque(hs, nombreSala);
-        terminal = new Terminal(nombre, fshop, sala, cantPuestosEmb);
+        FreeShop fshop = new FreeShop(nombreFreeshop, maxFreeshop);
+        terminal = new Terminal(nombre, fshop, cantPuestosEmb);
         terminales[cantTerminales]=terminal;
         cantTerminales++;
     }  
@@ -145,6 +155,7 @@ public class Main {
         Vuelo v = new Vuelo(id,nombreAerolinea,hora);
         vuelos[cantVuelos]=v;
         cantVuelos++;
+
     }
 
     private static void cartelAeropuerto(){

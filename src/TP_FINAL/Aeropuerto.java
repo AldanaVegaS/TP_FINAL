@@ -1,71 +1,100 @@
 package TP_FINAL;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 
 public class Aeropuerto {
-   private final Semaphore puestoInformacion = new Semaphore(1);
+   private final Semaphore puestoInformacion = new Semaphore(1,true);
    private final PuestoAtencion puestosAtencion [];
    private final PeopleMover peopleMover;
    private final Terminal terminales[]; 
    private final Vuelo vuelos[];
    private final Hora hora;
    private final AsignadorDeVuelos asignadorDeVuelos;
+   private final Lock guardia = new ReentrantLock();
+   private final Condition ingreso = guardia.newCondition();
+   private final HashMap<String, PuestoAtencion> mapeoAPuestos;//mapeo de aerolineas a puestos de atencion
 
-   public Aeropuerto(PuestoAtencion puestosAten[], PeopleMover mover, Terminal term[], Vuelo v[], Hora hs){
+
+   public Aeropuerto(PuestoAtencion puestosAten[],PeopleMover mover, Terminal term[], Vuelo v[], Hora hs, HashMap<String, PuestoAtencion> aerolineasAPuestos){
         puestosAtencion=puestosAten;
         peopleMover=mover;
         vuelos=v;
         hora = hs;
         asignadorDeVuelos = new AsignadorDeVuelos(term,vuelos);
-        terminales = asignadorDeVuelos.getTerminales();
-        for (int i = 0; i < puestosAten.length; i++) {
-         puestosAtencion[i].setTerminales(terminales);
-      }
-       iniciarPeopleMover();
+        terminales=term;
+        mapeoAPuestos = aerolineasAPuestos;
+        for (PuestoAtencion puesto : puestosAtencion) {
+            puesto.setAsignadorDeVuelos(asignadorDeVuelos);
+        }
+   }
+   
+
+   public PeopleMover getPeopleMover(){
+      return peopleMover;
    }
 
-   private void iniciarPeopleMover() {
-      peopleMover.start();
+   public PuestoAtencion[] getPuestosAtencion(){
+      return puestosAtencion;
    }
 
-   public void atencionPuestoInfo(Pasajero pasajero) throws InterruptedException{
-      synchronized (hora) {
-          while(hora.getHora()<6 || hora.getHora()>22){
-            hora.wait();
-         }
-      }
+
+   public PuestoAtencion atencionPuestoInfo(Pasajero pasajero) throws InterruptedException{
+      //Esperar que sea la hora de atencion
+      hora.horarioLaboral();
+     
+      //Ingresar al puesto de informacion
       this.puestoInformacion.acquire();
       System.out.println("\t"+Colores.CYAN+Colores.NEGRITA+"PUESTO DE INFORMES "+Colores.RESET+"---> "+pasajero.getNombre()+" está siendo atendido");
-      derivarPasajero(pasajero);
-      Thread.sleep(100);
+      
+      //Asignar el puesto de atencion correspondiente al pasajero
+      PuestoAtencion puesto = mapeoAPuestos.get(pasajero.getPasaje().getAerolinea());
+      Thread.sleep(20);
+      System.out.println("\t"+Colores.CYAN+Colores.NEGRITA+"PUESTO DE INFORMES "+Colores.RESET+"---> "+pasajero.getNombre()+" fue derivado al puesto de atencion "+puesto.getAerolinea());
+
+      //Liberar el puesto de informacion
       this.puestoInformacion.release();
+
+      return puesto;
    }
 
-   private void derivarPasajero(Pasajero pasajero){
-      int i = 0;
-      boolean derivado = false;
-      while(i < puestosAtencion.length && !derivado){
-         String aerolinea = pasajero.getPasaje().getAerolinea();
-         if(puestosAtencion[i].getAerolinea().equals(aerolinea)){
-            pasajero.setPuestoAtencion(puestosAtencion[i]);
-            derivado = true;
-         }
-         i++;
+   public void ingresarPuestoAtencion(Pasajero pasajero, PuestoAtencion puestoAtencion) throws InterruptedException{
+      //Esperar a que haya lugar en el puesto de atencion
+      guardia.lock();
+      try {
+          while (puestoAtencion.estaLleno()) {
+              System.out.println("\t\t"+Colores.YELLOW+Colores.NEGRITA+"PUESTO DE ATENCION "+Colores.RESET+"---> "+pasajero.getNombre()+" espera ser atendido en el puesto de atencion "+puestoAtencion.getAerolinea());
+              ingreso.await();
+          }
+          puestoAtencion.ingresar(pasajero);
+          ingreso.signalAll();
+      } finally {
+         guardia.unlock();
       }
-      System.out.println("\t"+Colores.CYAN+Colores.NEGRITA+"PUESTO DE INFORMES "+Colores.RESET+"---> "+pasajero.getNombre()+" fue derivado al puesto de atencion "+pasajero.getPuesto());
+      
    }
 
-   
-   public void subirAlPeopleMover(Pasajero pasajero) throws InterruptedException{
-      peopleMover.subirPasajero(pasajero);
+   public void salirPuestoAtencion(Pasajero pasajero, PuestoAtencion puestoAtencion){
+      guardia.lock();
+       try {
+           puestoAtencion.salir();
+           ingreso.signalAll();
+       } finally {
+           guardia.unlock();
+       }
    }
 
 
    @Override
    public String toString(){
       return "PUESTO DE INFORMACION:\n"+puestoInformacion.toString()+"\n\n"+
-               "PUESTOS DE ATENCION:\n"+Arrays.toString(puestosAtencion)+"\n\n"+"PEOPLE MOVER:\n"+
-               peopleMover.toString()+"\n\n"+"TERMINALES:\n"+Arrays.toString(terminales)+"\n\n"+"VUELOS:\n"+Arrays.toString(vuelos)+"\n\n";
+               "PUESTOS DE ATENCION:\n"+Arrays.toString(puestosAtencion)+"\n\n"+"PEOPLE MOVER:\n"+peopleMover.toString()+"\n\n"
+               +"TERMINALES:\n"+Arrays.toString(terminales)+"\n\n"
+               +"\n\n"+"VUELOS:\n"+Arrays.toString(vuelos)+"\n\n";
    }
 }

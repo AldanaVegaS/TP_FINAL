@@ -1,143 +1,144 @@
 package TP_FINAL;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class PeopleMover extends Thread {
+public class PeopleMover {
     private final int capacidadMax; // Capacidad máxima del tren
-    private final BlockingQueue<Pasajero> pasajeros; // Pasajeros actuales en el tren
-    private final String[] terminales = {"A", "B", "C"}; // Terminales en orden
-    private final Lock lockSubir = new ReentrantLock();
-    private final Condition puedeSubir = lockSubir.newCondition();
-    private final Lock lockSalir = new ReentrantLock();
-    private final Condition puedeSalir = lockSalir.newCondition();
-    private boolean enMovimiento = false; // Indica si está en recorrido
-    private final Hora reloj;
+    private final List<String> terminales = Arrays.asList("A", "B", "C"); // Terminales en orden
+    private final Lock lock = new ReentrantLock(true);
+    private final Condition esperarSubir = lock.newCondition();
+    private final Condition esperarBajar = lock.newCondition();
+    private final Condition esperarSalir = lock.newCondition();
+    private final Condition esperarContinuar = lock.newCondition();
 
-    public PeopleMover(int capacidadMax, Hora hs) {
+    private final int numTerminales; // Número total de estaciones (origen + intermedias)
+    private int pasajerosABordo; // Pasajeros actuales en el tren
+    private String estacionActual = " "; // Estación actual del tren (0 es origen)
+    private boolean enMovimiento; // Indica si el tren está en la estación origen
+    private boolean trenLleno; // Indica si el tren alcanzó su capacidad
+
+    private int[] pasajerosPorEstacion; // Pasajeros por estación destino
+
+    public PeopleMover(int capacidadMax) {
         this.capacidadMax = capacidadMax;
-        this.pasajeros = new LinkedBlockingDeque<>(capacidadMax);
-        this.reloj = hs;
+        this.numTerminales = 3;
+        this.pasajerosABordo = 0;
+        this.enMovimiento = false;
+        this.trenLleno = false;
+        this.pasajerosPorEstacion = new int[numTerminales];
     }
 
-    // Método para subir un pasajero al tren
+
+
+
+    // Método para que un pasajero suba al tren
     public void subirPasajero(Pasajero pasajero) throws InterruptedException {
-        lockSubir.lock();
+        lock.lock();
         try {
-            while (enMovimiento || pasajeros.size() >= capacidadMax) {
-                puedeSubir.await(); // Esperar si el tren está en movimiento o lleno.
+            System.out.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"---> " + pasajero.getNombre() + " intenta subir al tren.");
+            while (enMovimiento || pasajerosABordo >= capacidadMax) {
+                esperarSubir.await(); // Espera si el tren no está en origen o está lleno
             }
 
-            synchronized (pasajeros) {
-                if (pasajeros.size() < capacidadMax) {// Si hay espacio en el tren
-                    pasajeros.put(pasajero);
-                    System.out.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"---> "+pasajero.getNombre() + " subió al tren hacia la Terminal " + pasajero.getTerminal().getNombre()+", hay "+pasajeros.size()+" pasajeros en el tren.");
-                    lockSalir.lock();
-                    try {
-                        puedeSalir.signalAll();
-                    } finally {
-                        lockSalir.unlock();
-                    }
-                } else {
-                    System.out.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"---> "+pasajero.getNombre() + " espera porque el tren está lleno.");
-                }
+            pasajerosABordo++;
+            String estacionDestino = pasajero.getTerminal();
+            int indice = terminales.indexOf(estacionDestino);
+            pasajerosPorEstacion[indice]++;
+            System.out.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"---> "+pasajero.getNombre() + " subió al tren hacia la Terminal " + estacionDestino+", hay "+pasajerosABordo+" pasajeros en el tren.");
+            
+            // Notifica al conductor si el tren está lleno
+            if (pasajerosABordo >= capacidadMax) {
+                trenLleno = true;
+                esperarSalir.signal(); // Avisa al conductor si el tren está lleno
             }
         } finally {
-            lockSubir.unlock();
+            lock.unlock();
         }
+    }
+
+    // Método para que un pasajero baje del tren
+    public void bajarPasajero(Pasajero pasajero) throws InterruptedException {
+        lock.lock();
+        try {
+            String estacionDestino = pasajero.getTerminal();
+            while (!estacionActual.equals(estacionDestino)) {
+                esperarBajar.await(); // Espera hasta llegar a la estación destino
+            }
+            pasajerosABordo--;
+            int indice = terminales.indexOf(estacionDestino);
+            pasajerosPorEstacion[indice]--;
+            
+            if(pasajerosPorEstacion[indice] == 0){
+                System.out.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"---> Todos los pasajeros bajaron en estación " + estacionDestino);
+                esperarContinuar.signal(); // Avisa al conductor si no hay más pasajeros en la estación
+            }
+        } finally {
+            lock.unlock();
+        }        
+    }
+   
+    // Método del conductor para controlar el tren
+    public void conducir() throws InterruptedException {
+        lock.lock();
+        try {
+            // Espera en la estación origen hasta que el tren esté lleno o sea la hora de partir
+            System.out.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"---> Tren en terminal origen, esperando pasajeros.");
+            while (!trenLleno) {
+                System.out.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"---> Esperando a que el tren esté lleno.");
+                boolean señal = esperarSalir.await(3000,TimeUnit.MILLISECONDS);//Si paso una hora y no se llenó el tren, se va igual
+                if (!señal) {
+                    // Timeout ocurrió
+                    System.out.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"--->Se acabó el tiempo de espera. El tren partirá igual aunque no esté lleno. "+pasajerosABordo+" pasajeros a bordo.");
+                    break;
+                }
+            }
+
+            //Transcurrio el tiempo de espera o el tren está lleno
+            if (pasajerosABordo == 0) {//Paso el tiempo y no hay pasajeros
+                System.out.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"---> No hay pasajeros, el tren no puede partir.");
+            }else{
+                // Sale de la estación origen
+                enMovimiento = true;
+                System.out.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"---> Tren sale de la estación origen con " + pasajerosABordo + " pasajeros." 
+                + pasajerosPorEstacion[0] + " pasajeros en A, " + pasajerosPorEstacion[1] + " pasajeros en B, " + pasajerosPorEstacion[2] + " pasajeros en C.");
+
+                // Recorre las estaciones 1 a numEstaciones-1
+                for (String terminal: terminales) {
+                    int i = terminales.indexOf(terminal);
+                    estacionActual = terminal;
+                    System.out.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"---> Tren llega a estación " + terminal);
+                    if (pasajerosPorEstacion[i] > 0) {
+                        esperarBajar.signalAll();// Avisa a los pasajeros para que bajen
+                        esperarContinuar.await(); // Espera a que los pasajeros bajen
+                    }
+                    
+                    // Simula tiempo en la estación
+                    Thread.sleep(150);
+                }
+
+                // Regresa vacío a la estación origen
+                trenLleno = false;
+                enMovimiento = false;
+                estacionActual = " ";
+                pasajerosABordo = 0;
+                Arrays.fill(pasajerosPorEstacion, 0);
+                System.out.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"---> Tren regresa vacío a la estación origen.");
+                // Simula tiempo de regreso
+                Thread.sleep(300);
+            }
+            
+        } finally {
+            lock.unlock();
+        }
+            
         
     }
 
-    // Método que simula el recorrido del tren
-    public void iniciarRecorrido() throws InterruptedException {
-        while (true) {
-            synchronized (reloj) {
-                while(reloj.getHora()<6 || reloj.getHora()>22){
-                  reloj.wait();
-               }
-            }
-            // Esperar hasta que el tren esté lleno o este por salir un vuelo
-            lockSalir.lock();
-            try {
-                while (!trenListo()) { 
-                    puedeSalir.await();
-                }
-                enMovimiento = true;
-            } finally {
-                lockSalir.unlock();
-            }
-            System.out.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"---> "+ "El tren inicia su recorrido con " + pasajeros.size() + " pasajeros.");
-
-            // Recorrer las terminales en orden
-            for (String terminal : terminales) {
-                System.out.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"---> "+"El tren llega a la Terminal " + terminal + ".");
-                Thread.sleep(500);// Simular tiempo de viaje
-                bajarPasajeros(terminal);
-                
-            }
-
-            // Vaciar el tren al final del recorrido
-            synchronized (pasajeros) {
-                pasajeros.clear();
-                
-            }
-            System.out.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"---> "+"El tren regresa vacío al inicio.");
-            Thread.sleep(1000);//Simula el tiempo que le toma regresar al comienzo del recorrido
-            lockSubir.lock();
-            try {
-                enMovimiento = false;
-                puedeSubir.signalAll();
-            } finally {
-                lockSubir.unlock();
-            }
-            
-        }
-    }
-
-    // Método para que los pasajeros bajen en su terminal
-    private void bajarPasajeros(String terminalActual) {
-        synchronized (pasajeros) {
-            System.err.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"---> "+ "Bajando pasajeros en la Terminal " + terminalActual + ".");
-            pasajeros.removeIf(pasajero -> {
-                if (pasajero.getTerminal().getNombre().equals(terminalActual)) {
-                    System.out.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"---> "+pasajero.getNombre() + " baja en la Terminal " + terminalActual + ".");
-                    pasajero.bajoEnTerminal();
-                    return true;
-                }
-                return false;
-            });
-        }
-    }
-
-    // Método para verificar si el tren está listo para salir
-    private boolean trenListo() {
-        // Si el tren está lleno, puede salir
-        if (pasajeros.size() >= capacidadMax) {
-            return true;
-        }
-
-        // Verificar si algún pasajero tiene un vuelo próximo
-        int horaActual = reloj.getHora();
-        for (Pasajero pasajero : pasajeros) {
-            if (Math.abs(pasajero.getVuelo().getHoraSalida() - horaActual) <= 2) { // Vuelo próximo dentro de 2 horas
-                System.out.println("\t\t\t"+Colores.GREEN+Colores.NEGRITA+"PEOPLE MOVER "+Colores.RESET+"---> Vuelo próximo detectado: " + pasajero.getVuelo().getIdVuelo());
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public void run() {
-        try {
-            iniciarRecorrido();
-        } catch (InterruptedException e) {
-            System.err.println("Error: " + e.getMessage());
-        }
-    }
 
     @Override
     public String toString(){

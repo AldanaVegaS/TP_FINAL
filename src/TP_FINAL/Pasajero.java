@@ -1,14 +1,12 @@
 package TP_FINAL;
 
+import TP_FINAL.AsignadorDeVuelos.Tupla;
+
 public class Pasajero extends Thread{
     private final String nombre;
     private final Vuelo pasaje;
     private final Aeropuerto aeropuerto;
-    private PuestoAtencion puestoAtencion;
-    private Terminal terminal;
-    private String puesto;
-    private boolean atendidoEnPuestoAtencion = false;
-    private boolean bajoEnTerminal = false;
+    private Tupla terminalPuesto;
     private final Hora hs;
 
     public Pasajero(String nom, Vuelo pas, Aeropuerto aero,Hora hora){
@@ -29,64 +27,30 @@ public class Pasajero extends Thread{
         return pasaje;
     }
 
-    public String getPuesto(){
-        return puestoAtencion.getAerolinea();
+    public boolean esSuTerminal(String terminal){
+        return terminalPuesto.getTerminal().getNombre().equals(terminal);
     }
 
-    public void setPuestoAtencion(PuestoAtencion puesto){
-        puestoAtencion = puesto;
+    public String getTerminal(){
+        return terminalPuesto.getTerminal().getNombre();
     }
 
-    public void setTerminalYPuesto(Terminal term, String puesto){
-        terminal=term;
-        this.puesto=puesto;
-    }
-
-    public Terminal getTerminal(){
-        return terminal;
-    }
-
-    public String getPuestoEmbarque(){
-        return puesto;
-    }
-
-    
-    public synchronized void marcarAtendido() {
-        this.atendidoEnPuestoAtencion = true;
-        notify(); // Notifica si otro hilo está esperando.
-    }
-
-    public synchronized void esperarAtencion() throws InterruptedException {
-        while (!atendidoEnPuestoAtencion) {
-            wait(); // Espera a ser notificado de que ha sido atendido.
-        }
-    }
-
-    public synchronized void bajoEnTerminal(){
-        this.bajoEnTerminal = true;
-        notify();
-    }
-
-    public synchronized void esperarViaje() throws InterruptedException {
-        while (!bajoEnTerminal) {
-            wait(); 
-        }
-    }
-   
     public void ingresoATerminal(Terminal terminal) throws InterruptedException{
         int horaActual = hs.getHora();
         int tiempoRestante = pasaje.getHoraSalida() - horaActual;
-        if (tiempoRestante > 2 && hs.getHora()>6 && hs.getHora()<22) { 
+        boolean ingreso = Math.random() < 0.5;//Determina de manera aleatoria si el pasajero se dirige al free-shop o no
+        Thread.sleep(50); // Simular tiempo de decidir
+        if (ingreso && tiempoRestante > 2) { 
             System.out.println("\t\t\t\t"+Colores.RED+Colores.NEGRITA+"TERMINAL "+terminal.getNombre()+Colores.RESET+" ---> "+nombre + " decide ir al free-shop.");
             terminal.getFreeShop().ingresar(this);
         } else {
             System.out.println("\t\t\t\t"+Colores.RED+Colores.NEGRITA+"TERMINAL "+terminal.getNombre()+Colores.RESET+" ---> "+nombre + " va directamente a la sala de embarque.");
         }
-        terminal.getSala().esperarVuelo(this);
-    }
 
-    public void finalizar(){
-        Thread.currentThread().interrupt();
+        //Esperar el tiempo restante hasta la salida del vuelo
+        System.out.println("\t\t\t\t\t"+Colores.WHITE+Colores.NEGRITA+"SALA DE EMBARQUE"+Colores.RESET+" ---> " + getNombre() + " espera en la sala de embarque para el vuelo " + getVuelo().getIdVuelo() + ".");
+        hs.esperarHora(pasaje.getHoraSalida());
+        System.out.println("\t\t\t\t\t"+Colores.WHITE+Colores.NEGRITA+"SALA DE EMBARQUE"+Colores.RESET+" ---> " + getNombre() + " embarca en el vuelo " + getVuelo().getIdVuelo() + ".");
     }
 
 
@@ -95,25 +59,23 @@ public class Pasajero extends Thread{
         System.out.println(Colores.PURPLE+Colores.NEGRITA+"AEROPUERTO "+Colores.RESET+"---> Ingresa pasajero: "+nombre+", pasaje: "+pasaje.toString());
         try {
             //Es atendido por el puesto de informe y derivado al puesto de atencion correspondiente
-            aeropuerto.atencionPuestoInfo(this);
+            PuestoAtencion puestoAtencion = aeropuerto.atencionPuestoInfo(this);
 
-            //Es atendido en el puesto de atencion
-            puestoAtencion.ingresarPasajero(this);
+            //Es atendido en el puesto de atención
+            aeropuerto.ingresarPuestoAtencion(this, puestoAtencion);
+            terminalPuesto = puestoAtencion.hacerCheckIn(this);
+            aeropuerto.salirPuestoAtencion(this,puestoAtencion);
 
-            //Sube al people mover
-            this.esperarAtencion();
-            aeropuerto.subirAlPeopleMover(this);
+            //Espera al people mover para ser trasladado a su terminal
+            aeropuerto.getPeopleMover().subirPasajero(this);
+            aeropuerto.getPeopleMover().bajarPasajero(this);
 
-            //pasajero en la terminal
-            this.esperarViaje();
-            this.ingresoATerminal(terminal);
+            //Se dirige al freeshop o a espera su vuelo
+            ingresoATerminal(terminalPuesto.getTerminal());
 
         } catch (InterruptedException e) {
             System.err.println("Error: " + e.getMessage());
         }
-        
-        
-        
     }
 
     

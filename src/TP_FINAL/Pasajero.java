@@ -53,7 +53,6 @@ public class Pasajero extends Thread{
         System.out.println("\t\t\t\t\t"+Colores.WHITE+Colores.NEGRITA+"SALA DE EMBARQUE"+Colores.RESET+" ---> " + getNombre() + " embarca en el vuelo " + getVuelo().getIdVuelo() + ".");
     }
 
-
     @Override
     public void run(){    
         System.out.println(Colores.PURPLE+Colores.NEGRITA+"AEROPUERTO "+Colores.RESET+"---> Ingresa pasajero: "+nombre+", pasaje: "+pasaje.toString());

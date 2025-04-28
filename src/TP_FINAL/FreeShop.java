@@ -81,5 +81,6 @@ public class FreeShop {
     @Override
     public String toString(){
         return "Nombre:"+nombre+"  Cantidad maxima:"+max+ "  Cajas:"+Arrays.toString(cajasDisponibles);
+        return "Nombre:"+nombre+"  Cantidad maxima:"+max+ "  Cajas:"+Arrays.toString(cajasDisponibles);
     }
 }

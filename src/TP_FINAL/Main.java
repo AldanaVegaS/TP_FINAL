@@ -42,8 +42,8 @@ public class Main {
         conductorTren = new ConductorTren(mover,hs);
         conductorTren.start();
 
+        ScheduledThreadPoolExecutor scheduler = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1);
         Runnable task = () -> {
-            int pasajeros = (int) (Math.random() * (cantPasajeros - 0 + 1) + 1); 
             int pasajeros = (int) (Math.random() * (cantPasajeros - 0 + 1) + 1); 
                 for (int i = 1; i <= pasajeros; i++) {
                     // Filtrar vuelos que no hayan salido aún
@@ -66,7 +66,6 @@ public class Main {
                         contadorPasajeros++;
                     }
                 }
-            
             
         };
         int initialDelay = 0;
@@ -123,7 +122,6 @@ public class Main {
         StringTokenizer dato = new StringTokenizer(line,",");
         
         max = Integer.parseInt(dato.nextToken());
-        mover = new PeopleMover(max);
         mover = new PeopleMover(max);
     }
 

@@ -14,6 +14,7 @@ public class Aeropuerto {
    private final PeopleMover peopleMover;
    private final Terminal terminales[]; 
    private final Vuelo vuelos[];
+   private final Hora hora;
    private final AsignadorDeVuelos asignadorDeVuelos;
    private final Lock guardia = new ReentrantLock();
    private final Condition ingreso = guardia.newCondition();
@@ -24,6 +25,7 @@ public class Aeropuerto {
         puestosAtencion=puestosAten;
         peopleMover=mover;
         vuelos=v;
+        hora = hs;
         asignadorDeVuelos = new AsignadorDeVuelos(term,vuelos);
         terminales=term;
         mapeoAPuestos = aerolineasAPuestos;

@@ -1,6 +1,5 @@
 package TP_FINAL;
 
-
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -78,9 +77,44 @@ public class FreeShop {
     }
 
 
+
+    // public void ingresar(Pasajero pasajero) throws InterruptedException{
+    //     if (lugaresDisponibles.tryAcquire()){
+    //         System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA+nombre+Colores.RESET+" ---> "+pasajero.getNombre()+" ingresando al freeshop");
+    //         boolean compra = Math.random() < 0.5;
+        
+    //         if (compra) {
+    //             System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA+nombre+Colores.RESET+" ---> "+ pasajero.getNombre() + " está mirando productos y decide comprar.");
+    //             Thread.sleep(300); // Simular tiempo de mirar productos
+    //             realizarCompra(pasajero);
+    //         } else {
+    //             System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA+nombre+Colores.RESET+" ---> "+ pasajero.getNombre() + " solo está mirando productos.");
+    //             Thread.sleep(200); // Simular tiempo de mirar productos
+    //         }
+
+    //         System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA+nombre+Colores.RESET+" ---> "+pasajero.getNombre()+" saliendo del freeshop");
+    //         lugaresDisponibles.release();
+    //     }else{
+    //         System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA+nombre+Colores.RESET+" ---> "+pasajero.getNombre()+" no pudo ingresar al freeshop");  
+    //     }
+    // }
+
+    // private void realizarCompra(Pasajero pasajero) throws InterruptedException{
+    //     //Se elige la caja con menor cantidad de pasajeros haciendo fila
+    //     Semaphore seleccionado = (cajasDisponibles[0].getQueueLength() <= cajasDisponibles[1].getQueueLength()) ? cajasDisponibles[0] : cajasDisponibles[1];
+
+    //     String nombreCaja = (seleccionado == cajasDisponibles[0]) ? "CAJA 1" : "CAJA 2";
+    //     System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA + nombre +Colores.RESET+ " ---> " + pasajero.getNombre() + " se une a la cola de la "  +nombreCaja+ ".");
+
+    //     seleccionado.acquire();
+    //     System.out.println("\t\t\t\t\t\t"+Colores.BLUE_FONDO+Colores.NEGRITA + nombreCaja+"-" +nombre+Colores.RESET+ " ---> Atendiendo a " + pasajero.getNombre() + ".");
+    //     System.out.println("\t\t\t\t\t\t"+Colores.BLUE_FONDO+Colores.NEGRITA + nombreCaja+"-"+nombre+Colores.RESET+ " ---> Finalizada la compra de " + pasajero.getNombre() + ".");
+    //     seleccionado.release();
+    // }
+
+
     @Override
     public String toString(){
-        return "Nombre:"+nombre+"  Cantidad maxima:"+max+ "  Cajas:"+Arrays.toString(cajasDisponibles);
         return "Nombre:"+nombre+"  Cantidad maxima:"+max+ "  Cajas:"+Arrays.toString(cajasDisponibles);
     }
 }

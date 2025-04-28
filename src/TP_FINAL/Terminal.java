@@ -1,4 +1,5 @@
 package TP_FINAL;
+
 import java.util.Arrays;
 
 public class Terminal {

@@ -25,7 +25,6 @@ public class PeopleMover {
     private int[] pasajerosPorEstacion; // Pasajeros por estación destino
 
     public PeopleMover(int capacidadMax) {
-    public PeopleMover(int capacidadMax) {
         this.capacidadMax = capacidadMax;
         this.numTerminales = 3;
         this.pasajerosABordo = 0;

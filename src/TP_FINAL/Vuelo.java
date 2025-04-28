@@ -1,4 +1,5 @@
 package TP_FINAL;
+
 public class Vuelo {
     private final String idVuelo;
     private final String aerolinea;

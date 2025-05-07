@@ -1,8 +1,6 @@
 package TP_FINAL;
 
 import java.util.Arrays;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -10,13 +8,13 @@ public class FreeShop {
     private final String nombre;
     private final int max;
     private final Semaphore[] cajasDisponibles = {new Semaphore(1,true), new Semaphore(1,true)};
-    private BlockingQueue<Pasajero> cola;
+    private final Semaphore lugaresDisponibles;
     private final AtomicInteger[] cajasPasajeros;
 
     public FreeShop(String n, int m){
         nombre=n;
         max=m;
-        cola = new LinkedBlockingQueue<>(max);
+        lugaresDisponibles = new Semaphore(max,true);
         cajasPasajeros = new AtomicInteger[2]; // Initialize the array
         // Inicializamos los AtomicInteger a 0 (sin pasajeros)
         for (int i = 0; i < 2; i++) {
@@ -29,7 +27,7 @@ public class FreeShop {
     }
 
     public void ingresar(Pasajero pasajero) throws InterruptedException{
-        if (cola.offer(pasajero)){
+        if (lugaresDisponibles.tryAcquire()){
             System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA+nombre+Colores.RESET+" ---> "+pasajero.getNombre()+" ingresando al freeshop");   
             boolean compra = Math.random() < 0.5;
         
@@ -43,7 +41,7 @@ public class FreeShop {
             }
 
             System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA+nombre+Colores.RESET+" ---> "+pasajero.getNombre()+" saliendo del freeshop");
-            cola.remove(pasajero);
+            lugaresDisponibles.release();
         }else{
             System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA+nombre+Colores.RESET+" ---> "+pasajero.getNombre()+" no pudo ingresar al freeshop");  
         }
@@ -75,42 +73,6 @@ public class FreeShop {
         // Decrementamos el contador de pasajeros esperando
         cajasPasajeros[cajaSeleccionada].decrementAndGet();  // Reducimos la cantidad de pasajeros esperando
     }
-
-
-
-    // public void ingresar(Pasajero pasajero) throws InterruptedException{
-    //     if (lugaresDisponibles.tryAcquire()){
-    //         System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA+nombre+Colores.RESET+" ---> "+pasajero.getNombre()+" ingresando al freeshop");
-    //         boolean compra = Math.random() < 0.5;
-        
-    //         if (compra) {
-    //             System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA+nombre+Colores.RESET+" ---> "+ pasajero.getNombre() + " está mirando productos y decide comprar.");
-    //             Thread.sleep(300); // Simular tiempo de mirar productos
-    //             realizarCompra(pasajero);
-    //         } else {
-    //             System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA+nombre+Colores.RESET+" ---> "+ pasajero.getNombre() + " solo está mirando productos.");
-    //             Thread.sleep(200); // Simular tiempo de mirar productos
-    //         }
-
-    //         System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA+nombre+Colores.RESET+" ---> "+pasajero.getNombre()+" saliendo del freeshop");
-    //         lugaresDisponibles.release();
-    //     }else{
-    //         System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA+nombre+Colores.RESET+" ---> "+pasajero.getNombre()+" no pudo ingresar al freeshop");  
-    //     }
-    // }
-
-    // private void realizarCompra(Pasajero pasajero) throws InterruptedException{
-    //     //Se elige la caja con menor cantidad de pasajeros haciendo fila
-    //     Semaphore seleccionado = (cajasDisponibles[0].getQueueLength() <= cajasDisponibles[1].getQueueLength()) ? cajasDisponibles[0] : cajasDisponibles[1];
-
-    //     String nombreCaja = (seleccionado == cajasDisponibles[0]) ? "CAJA 1" : "CAJA 2";
-    //     System.out.println("\t\t\t\t\t"+Colores.BLUE+Colores.NEGRITA + nombre +Colores.RESET+ " ---> " + pasajero.getNombre() + " se une a la cola de la "  +nombreCaja+ ".");
-
-    //     seleccionado.acquire();
-    //     System.out.println("\t\t\t\t\t\t"+Colores.BLUE_FONDO+Colores.NEGRITA + nombreCaja+"-" +nombre+Colores.RESET+ " ---> Atendiendo a " + pasajero.getNombre() + ".");
-    //     System.out.println("\t\t\t\t\t\t"+Colores.BLUE_FONDO+Colores.NEGRITA + nombreCaja+"-"+nombre+Colores.RESET+ " ---> Finalizada la compra de " + pasajero.getNombre() + ".");
-    //     seleccionado.release();
-    // }
 
 
     @Override

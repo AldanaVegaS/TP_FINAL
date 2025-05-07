@@ -15,8 +15,8 @@ public class FreeShop {
         nombre=n;
         max=m;
         lugaresDisponibles = new Semaphore(max,true);
-        cajasPasajeros = new AtomicInteger[2]; // Initialize the array
-        // Inicializamos los AtomicInteger a 0 (sin pasajeros)
+        cajasPasajeros = new AtomicInteger[2]; 
+        // Inicializa los AtomicInteger a 0 (sin pasajeros)
         for (int i = 0; i < 2; i++) {
             cajasPasajeros[i] = new AtomicInteger(0);
         }
